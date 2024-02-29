@@ -16,13 +16,27 @@
  */
 package org.jboss.as.quickstarts.tasksJsf;
 
-import javax.enterprise.context.Conversation;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Produces;
-import javax.faces.application.FacesMessage;
-import javax.faces.context.FacesContext;
-import javax.inject.Inject;
-import javax.inject.Named;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
+import io.quarkus.logging.Log;
+import io.quarkus.qute.Template;
+import io.quarkus.qute.TemplateInstance;
+import jakarta.enterprise.context.Conversation;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.Response.Status;
 
 /**
  * Provides authentication operations with current user store: {@link Authentication}.
@@ -30,9 +44,12 @@ import javax.inject.Named;
  * @author Lukas Fryc
  *
  */
-@Named
+@Path("/")
 @RequestScoped
 public class AuthController {
+
+    @Inject
+    Template index;
 
     @Inject
     private Authentication authentication;
@@ -40,32 +57,27 @@ public class AuthController {
     @Inject
     private UserDao userDao;
 
+    // NOTE: Temporary workaround for loss of ConversationScoped; lazy init
     @Inject
-    private FacesContext facesContext;
+    Instance<CurrentTaskStore> taskStore;
 
-    @Inject
-    private Conversation conversation;
+    @GET
+    @Produces(MediaType.TEXT_HTML)
+    public Response renderLoginPage() {
+        if (isLogged()) {
+            // Redirect to /tasks
+            URI tasksUri = UriBuilder.fromPath("/tasks").build();
+            return Response
+                    .seeOther(tasksUri)
+                    .build();
+        }
 
-    /**
-     * <p>
-     * Provides current user to the context available for injection using:
-     * </p>
-     *
-     * <p>
-     * <code>@Inject @CurrentUser currentUser;</code>
-     * </p>
-     *
-     * <p>
-     * or from the Expression Language context using an expression <code>#{currentUser}</code>.
-     * </p>
-     *
-     * @return current authenticated user
-     */
-    @Produces
-    @Named
-    @CurrentUser
-    public User getCurrentUser() {
-        return authentication.getCurrentUser();
+        TemplateInstance template = index
+                .data("currentUser", authentication.getCurrentUser());
+
+        return Response
+                .ok(template.render())
+                .build();
     }
 
     /**
@@ -73,31 +85,64 @@ public class AuthController {
      * Authenticates current user with 'username' against user data store
      * </p>
      *
-     * <p>
-     * Starts the new conversation.
-     * </p>
-     *
      * @param username the username of the user to authenticate
      */
-    public void authenticate(String username) {
+    @POST
+    @Produces(MediaType.TEXT_HTML)
+    @Transactional
+    public Response authenticate(String username) {
         if (isLogged()) {
             throw new IllegalStateException("User is logged and tries to authenticate again");
         }
 
+        List<String> messages = new ArrayList<>();
+
         User user = userDao.getForUsername(username);
         if (user == null) {
-            user = createUser(username);
+            // TODO: Need a more complete refactor to replicate the old FacesMessage functionality
+            // NOTE: Removing "success" message since that would never be seen in any code flow
+            try {
+                user = createUser(username);
+            } catch (Exception e) {
+                Log.error(e);
+
+                messages.add("Failed to create user '" + username + "'");
+
+                TemplateInstance template = index
+                        .data("username", authentication.getCurrentUser())
+                        .data("messages", messages);
+
+                // TODO: Failure response
+                return Response
+                        .status(Status.UNAUTHORIZED)
+                        .entity(template.render())
+                        .build();
+            }
         }
+
         authentication.setCurrentUser(user);
-        conversation.begin();
+
+        // TODO: Is there a better way to redirect on POST, given the current paradigm?
+        // Redirect to /tasks
+        return Response
+                .seeOther(URI.create("/tasks"))
+                .build();
     }
 
     /**
-     * Logs current user out and ends the current conversation.
+     * Logs current user out and clears associated cached session data
+     * (workaround for loss of ConversationScoped)
      */
-    public void logout() {
+    @Path("/logout")
+    @GET
+    @Produces(MediaType.TEXT_HTML)
+    public Response logout() {
         authentication.setCurrentUser(null);
-        conversation.end();
+        taskStore.get().unset();
+
+        return Response
+                .seeOther(URI.create("/"))
+                .build();
     }
 
     /**
@@ -110,14 +155,8 @@ public class AuthController {
     }
 
     private User createUser(String username) {
-        try {
-            User user = new User(username);
-            userDao.createUser(user);
-            facesContext.addMessage(null, new FacesMessage("User successfully created"));
-            return user;
-        } catch (Exception e) {
-            facesContext.addMessage(null, new FacesMessage("Failed to create user '" + username + "'", e.getMessage()));
-            return null;
-        }
+        User user = new User(username);
+        userDao.createUser(user);
+        return user;
     }
 }

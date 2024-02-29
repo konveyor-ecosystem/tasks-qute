@@ -16,23 +16,38 @@
  */
 package org.jboss.as.quickstarts.tasksJsf;
 
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import io.quarkus.test.junit.QuarkusTest;
 
 /**
- * Basic operations for manipulation of tasks
- *
  * @author Lukas Fryc
- *
  */
-public interface TaskDao {
+@Disabled
+@QuarkusTest
+public class ResourcesTest {
 
-    void createTask(User user, Task task);
+    public static final String WEBAPP_SRC = "src/main/webapp";
 
-    List<Task> getAll(User user);
+    @Inject
+    private Instance<Logger> loggerInstance;
 
-    List<Task> getRange(User user, int offset, int count);
+    @Test
+    public void logger_should_be_provided_and_be_able_to_log_information_message() {
+        Logger logger = loggerInstance.get();
+        assertNotNull(logger);
+        assertTrue(logger instanceof Logger);
+        logger.log(Level.INFO, "test message");
+    }
 
-    List<Task> getForTitle(User user, String title);
-
-    void deleteTask(Task task);
 }

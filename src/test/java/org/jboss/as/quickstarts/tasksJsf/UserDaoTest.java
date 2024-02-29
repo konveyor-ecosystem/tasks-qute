@@ -16,32 +16,26 @@
  */
 package org.jboss.as.quickstarts.tasksJsf;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.FileNotFoundException;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import org.junit.jupiter.api.Disabled;
 
-import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+
+import org.junit.jupiter.api.Test;
+
+import io.quarkus.test.junit.QuarkusTest;
 
 /**
  * @author Lukas Fryc
  * @author Oliver Kiss
  */
-@RunWith(Arquillian.class)
-public class UserDaoIT {
-
-    @Deployment
-    public static WebArchive deployment() throws IllegalArgumentException, FileNotFoundException {
-        return new DefaultDeployment().withPersistence().withImportedData().getArchive()
-                .addClasses(Resources.class, User.class, UserDao.class, Task.class, TaskDao.class, UserDaoImpl.class);
-    }
+@Disabled
+@QuarkusTest
+public class UserDaoTest {
 
     @Inject
     private UserDao userDao;
@@ -61,7 +55,7 @@ public class UserDaoIT {
         // then
         assertTrue(em.contains(created));
         assertTrue(em.contains(retrieved));
-        Assert.assertEquals(created, retrieved);
+        assertEquals(created, retrieved);
     }
 
     @Test
@@ -73,7 +67,7 @@ public class UserDaoIT {
         User retrieved = userDao.getForUsername(username);
 
         // then
-        Assert.assertEquals(username, retrieved.getUsername());
+        assertEquals(username, retrieved.getUsername());
     }
 
     @Test

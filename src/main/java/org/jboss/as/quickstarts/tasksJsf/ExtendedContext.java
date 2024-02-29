@@ -16,23 +16,22 @@
  */
 package org.jboss.as.quickstarts.tasksJsf;
 
-import java.util.List;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+import jakarta.inject.Qualifier;
 
 /**
- * Basic operations for manipulation of tasks
+ * Qualifier for current user
  *
  * @author Lukas Fryc
  *
  */
-public interface TaskDao {
+@Qualifier
+@Target({ ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER })
+@Retention(RetentionPolicy.RUNTIME)
+public @interface ExtendedContext {
 
-    void createTask(User user, Task task);
-
-    List<Task> getAll(User user);
-
-    List<Task> getRange(User user, int offset, int count);
-
-    List<Task> getForTitle(User user, String title);
-
-    void deleteTask(Task task);
 }

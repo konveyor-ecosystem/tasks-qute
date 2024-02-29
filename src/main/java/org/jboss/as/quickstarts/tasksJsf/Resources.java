@@ -18,14 +18,12 @@ package org.jboss.as.quickstarts.tasksJsf;
 
 import java.util.logging.Logger;
 
-import javax.ejb.Stateful;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.InjectionPoint;
-import javax.faces.context.FacesContext;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.PersistenceContextType;
+import jakarta.enterprise.context.SessionScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.spi.InjectionPoint;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.PersistenceContextType;
 
 /**
  * This class uses CDI to alias Jakarta EE resources, such as the persistence context, to CDI beans. As it is a stateful bean, it
@@ -35,18 +33,22 @@ import javax.persistence.PersistenceContextType;
  *
  * &#064;Inject private EntityManager em;
  *
+ * NOTE: Changing to SessionScoped due to loss of ConversationScoped. This will
+ * increase the resources used, but will provide the same functionality in
+ * practice (carrying an extended persistence context across multiple requests)
+ *
  * @author Pete Muir
  * @author Lukas Fryc
  *
  */
-@Stateful
-@RequestScoped
+@SessionScoped
 public class Resources {
 
     @PersistenceContext(type = PersistenceContextType.EXTENDED)
     private EntityManager em;
 
     @Produces
+    @ExtendedContext
     public EntityManager getEm() {
         return em;
     }
@@ -55,10 +57,5 @@ public class Resources {
     public Logger getLogger(InjectionPoint ip) {
         String category = ip.getMember().getDeclaringClass().getName();
         return Logger.getLogger(category);
-    }
-
-    @Produces
-    public FacesContext getFacesContext() {
-        return FacesContext.getCurrentInstance();
     }
 }
