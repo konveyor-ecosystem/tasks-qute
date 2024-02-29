@@ -6,3 +6,6 @@ We are relocating the code in this repo to ease testing so we can have the origi
 Original source for the EAP branch is from the 7.4.x branch at:
 https://github.com/jboss-developer/jboss-eap-quickstarts/tree/7.4.x/tasks-jsf to Quarkus
 
+## Code of Conduct
+Refer to Konveyor's Code of Conduct [here](https://github.com/konveyor/community/blob/main/CODE_OF_CONDUCT.md).
+
